@@ -1,31 +1,169 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minhas Ofertas</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gerador de Encarte Visual</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f7f7f7;
+    margin: 0; padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    color: #b22222;
+  }
+  form {
+    max-width: 600px;
+    margin: 10px auto 20px;
+    display: flex;
+    gap: 10px;
+  }
+  input[type=text], input[type=number] {
+    flex: 1;
+    padding: 10px;
+    font-size: 1rem;
+  }
+  button {
+    padding: 0 20px;
+    background: #b22222;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #7a0d0d;
+  }
+  #encarte {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+    gap: 15px;
+  }
+  .card {
+    background: white;
+    border: 2px solid #b22222;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    box-shadow: 1px 2px 8px rgba(0,0,0,0.1);
+  }
+  .card img {
+    max-width: 100%;
+    height: 150px;
+    object-fit: contain;
+    margin-bottom: 8px;
+  }
+  .card .produto {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #222;
+  }
+  .card .preco {
+    font-size: 1.3rem;
+    color: #b22222;
+  }
+  #baixar {
+    display: block;
+    margin: 20px auto;
+    background: #b22222;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  #baixar:hover {
+    background: #7a0d0d;
+  }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>Minhas Ofertas</h1>
 
-    <form id="form-oferta">
-      <input type="text" id="produto" placeholder="Nome do produto" required>
-      <input type="text" id="preco" placeholder="Preço (R$)" required>
-      <input type="text" id="descricao" placeholder="Descrição (opcional)">
-      <input type="url" id="imagem" placeholder="URL da imagem (opcional)">
-      <button type="submit">Adicionar Oferta</button>
-    </form>
+<h1>Gerador de Encarte Visual</h1>
 
-    <div class="botoes">
-      <button onclick="exportarJSON()">Exportar JSON</button>
-      <input type="file" id="importar-json" accept="application/json" onchange="importarJSON(event)">
-    </div>
+<form id="form-produto">
+  <input type="text" id="nomeProduto" placeholder="Nome do produto" required />
+  <input type="number" id="precoProduto" placeholder="Preço (R$)" min="0" step="0.01" required />
+  <button type="submit">Adicionar ao Encarte</button>
+</form>
 
-    <div id="ofertas"></div>
-  </div>
+<div id="encarte"></div>
+<button id="baixar">Baixar Encarte como Imagem</button>
 
-  <script src="script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+  const form = document.getElementById('form-produto');
+  const encarte = document.getElementById('encarte');
+  const baixarBtn = document.getElementById('baixar');
+
+  // Função que busca imagem no DuckDuckGo Imagens JSON (não oficial)
+  async function buscarImagem(query) {
+    const url = `https://duckduckgo.com/?q=${encodeURIComponent(query)}&iax=images&ia=images`;
+    try {
+      // Precisamos de um token 'vqd' que DuckDuckGo usa, para isso pegamos a página
+      const res1 = await fetch(url);
+      const text1 = await res1.text();
+      const vqdMatch = text1.match(/vqd='([\d-]+)'/);
+      if (!vqdMatch) return null;
+      const vqd = vqdMatch[1];
+
+      const imgUrl = `https://duckduckgo.com/i.js?q=${encodeURIComponent(query)}&vqd=${vqd}&o=json&f=,,,&p=1`;
+      const res2 = await fetch(imgUrl);
+      const data = await res2.json();
+      if (data && data.results && data.results.length > 0) {
+        return data.results[0].image;
+      }
+    } catch (e) {
+      console.log('Erro ao buscar imagem:', e);
+    }
+    return null;
+  }
+
+  // Função que adiciona um card ao encarte
+  async function adicionarProduto(nome, preco) {
+    let imagem = await buscarImagem(nome);
+    if (!imagem) {
+      imagem = 'https://via.placeholder.com/150?text=Sem+Imagem';
+    }
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    card.innerHTML = `
+      <img src="${imagem}" alt="${nome}" />
+      <div class="produto">${nome}</div>
+      <div class="preco">R$ ${parseFloat(preco).toFixed(2)}</div>
+    `;
+
+    encarte.appendChild(card);
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const nome = document.getElementById('nomeProduto').value.trim();
+    const preco = document.getElementById('precoProduto').value.trim();
+    if (!nome || !preco) return;
+    form.reset();
+
+    await adicionarProduto(nome, preco);
+  });
+
+  // Botão baixar encarte como imagem
+  baixarBtn.addEventListener('click', () => {
+    html2canvas(encarte).then(canvas => {
+      const link = document.createElement('a');
+      link.download = 'encarte.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  });
+</script>
+
 </body>
 </html>
