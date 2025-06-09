@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minhas Ofertas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Minhas Ofertas</h1>
+
+    <form id="form-oferta">
+      <input type="text" id="produto" placeholder="Nome do produto" required>
+      <input type="text" id="preco" placeholder="Preço (R$)" required>
+      <input type="text" id="descricao" placeholder="Descrição (opcional)">
+      <input type="url" id="imagem" placeholder="URL da imagem (opcional)">
+      <button type="submit">Adicionar Oferta</button>
+    </form>
+
+    <div class="botoes">
+      <button onclick="exportarJSON()">Exportar JSON</button>
+      <input type="file" id="importar-json" accept="application/json" onchange="importarJSON(event)">
+    </div>
+
+    <div id="ofertas"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
